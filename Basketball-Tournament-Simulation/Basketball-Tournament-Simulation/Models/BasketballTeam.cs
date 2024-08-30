@@ -17,6 +17,7 @@ public class BasketballTeam
     public int Forfeits { get; set; } = 0;
     public int ScoredPoints { get; set; } = 0;
     public int ConcededPoints { get; set; } = 0;
+    public int TournamentWins { get; set; } = 0;
 
     public int PointDifference => ScoredPoints - ConcededPoints;
 }

@@ -92,8 +92,8 @@ public class Program
         int rankDifference = Math.Abs(team1.FIBARanking - team2.FIBARanking);
 
         // Racunanje koeficijenta forme za timove, na osnovu rezultata sa pripremnih utakmica
-        int formCoefficientTeam1 = CalculateFormCoefficient(team1.ISOCode, preseasonResults);
-        int formCoefficientTeam2 = CalculateFormCoefficient(team2.ISOCode, preseasonResults);
+        int formCoefficientTeam1 = CalculateFormCoefficient(team1.ISOCode, preseasonResults, team1.TournamentWins);
+        int formCoefficientTeam2 = CalculateFormCoefficient(team2.ISOCode, preseasonResults, team2.TournamentWins);
 
         // Racunanje osnovne verovatnoce pobede za oba tima
         double baseWinProbabilityTeam1 = 0.5 + (formCoefficientTeam1 * 0.05) - (formCoefficientTeam2 * 0.05);
@@ -136,6 +136,7 @@ public class Program
             team1.Wins++;
             team2.Points += 1;
             team2.Losses++;
+            team1.TournamentWins++;
 
             team1Points += rankDifference / 2;
         }
@@ -148,6 +149,7 @@ public class Program
             team2.Wins++;
             team1.Points += 1;
             team1.Losses++;
+            team2.TournamentWins++;
 
             team2Points += rankDifference / 2;
         }
@@ -165,20 +167,20 @@ public class Program
         Console.WriteLine($"{team1.Team} - {team2.Team} ({team1Points} : {team2Points})");
     }
 
-    static int CalculateFormCoefficient(string isoCode, Dictionary<string, List<MatchResult>> preseasonResults)
+    static int CalculateFormCoefficient(string isoCode, Dictionary<string, List<MatchResult>> preseasonResults, int tournamentWins)
     {
+        int preseasonWins = 0;
+
         if (preseasonResults.TryGetValue(isoCode, out var matches))
         {
-            int wins = matches.Count(match =>
+            preseasonWins = matches.Count(match =>
             {
                 var scores = match.Result.Split('-').Select(int.Parse).ToArray();
                 return scores[0] > scores[1];
             });
-
-            return wins;
         }
 
-        return 0;
+        return preseasonWins + tournamentWins; // Sum preseason wins and tournament wins
     }
 
     static void PrintGroupResults(string groupName, List<BasketballTeam> teams)
@@ -407,8 +409,8 @@ public class Program
 
         // Racunanje koeficijenata forme za obe ekipe
 
-        int formCoefficientTeam1 = CalculateFormCoefficient(team1.ISOCode, preseasonResults);
-        int formCoefficientTeam2 = CalculateFormCoefficient(team2.ISOCode, preseasonResults);
+        int formCoefficientTeam1 = CalculateFormCoefficient(team1.ISOCode, preseasonResults, team1.TournamentWins);
+        int formCoefficientTeam2 = CalculateFormCoefficient(team2.ISOCode, preseasonResults, team2.TournamentWins);
 
         double winProbabilityTeam1 = 0.5 + ((formCoefficientTeam1 - formCoefficientTeam2) * 0.05) + 0.01 * (team2.FIBARanking - team1.FIBARanking) * 1.75;
 
@@ -428,6 +430,7 @@ public class Program
         {
             team1Points = basePoints + random.Next(1, 15);
             team2Points = basePoints - random.Next(1, 5);
+            team1.TournamentWins++;
 
             team1Points += rankDifference / 2;
         }
@@ -435,8 +438,9 @@ public class Program
         {
             team2Points = basePoints + random.Next(1, 15);
             team1Points = basePoints - random.Next(1, 5);
-
             team2Points += rankDifference / 2;
+
+            team2.TournamentWins++;
         }
 
         Console.WriteLine("-------------------------------------------------------");
