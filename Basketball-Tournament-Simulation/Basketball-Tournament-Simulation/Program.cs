@@ -91,16 +91,15 @@ public class Program
 
         int rankDifference = Math.Abs(team1.FIBARanking - team2.FIBARanking);
 
-        // Racunanje koeficijenta forme za timove, na osnovu rezultata sa pripremnih utakmica
+        // Racunanje koeficijenta forme za timove na osnovu rezultata iz predsezone
         int formCoefficientTeam1 = CalculateFormCoefficient(team1.ISOCode, preseasonResults, team1.TournamentWins);
         int formCoefficientTeam2 = CalculateFormCoefficient(team2.ISOCode, preseasonResults, team2.TournamentWins);
 
-        // Racunanje osnovne verovatnoce pobede za oba tima
+        // Racunanje osnovne verovatnoce za pobedu timova
         double baseWinProbabilityTeam1 = 0.5 + (formCoefficientTeam1 * 0.05) - (formCoefficientTeam2 * 0.05);
         double baseWinProbabilityTeam2 = 0.5 + (formCoefficientTeam2 * 0.05) - (formCoefficientTeam1 * 0.05);
 
-        //Povecavanje verovatnoce pobede za USA 
-
+        // Povecavanje osnovne verovatnoce da USA pobedi protiv svakog protivnika usled neravnomernog odnosa snaga i realnijih rezultata
         if (team1.ISOCode == "USA")
         {
             baseWinProbabilityTeam1 *= 1.2;
@@ -110,61 +109,98 @@ public class Program
             baseWinProbabilityTeam2 *= 1.2;
         }
 
-        // Promena verovatnoce pobede na osnovu FIBA rankinga
-        baseWinProbabilityTeam1 += 0.01 * rankDifference * (team1.FIBARanking < team2.FIBARanking ? 1.75 : -1.75);
-        baseWinProbabilityTeam2 += 0.01 * rankDifference * (team2.FIBARanking < team1.FIBARanking ? 1.75 : -1.75);
-        
+        // Sansa da se neki tim preda
+        double forfeitChance = 0.05;
+        bool team1Forfeits = random.NextDouble() < forfeitChance;
+        bool team2Forfeits = random.NextDouble() < forfeitChance;
 
-        double totalProbability = baseWinProbabilityTeam1 + baseWinProbabilityTeam2;
-        double winProbabilityTeam1 = baseWinProbabilityTeam1 / totalProbability;
-        double winProbabilityTeam2 = baseWinProbabilityTeam2 / totalProbability;
+        if (team1Forfeits && team2Forfeits)
+        {
+            team1Forfeits = random.NextDouble() < 0.5;
+            team2Forfeits = !team1Forfeits;
+        }
 
-        // Odredjivanje ishoda meca
-        bool team1Wins = random.NextDouble() < winProbabilityTeam1;
+        if (team1Forfeits)
+        {
+            team1.Forfeits++;
+            team1.Losses++;
+            team2.Wins++;
+            team1.Points += 0;
+            team2.Points += 2;
+
+
+            int team1Points = 0;
+            int team2Points = 20;
+
+            team1.ScoredPoints += team1Points;
+            team1.ConcededPoints += team2Points;
+            team2.ScoredPoints += team2Points;
+            team2.ConcededPoints += team1Points;
+
+            Console.WriteLine($"{team1.Team} forfeits the match against {team2.Team}. Final score: {team1Points} : {team2Points}");
+            return;
+        }
+        else if (team2Forfeits)
+        {
+
+            team2.Forfeits++;
+            team2.Losses++;
+            team1.Wins++;
+            team1.Points += 2;
+            team2.Points += 0;
+
+
+            int team1Points = 20;
+            int team2Points = 0;
+
+            team1.ScoredPoints += team1Points;
+            team1.ConcededPoints += team2Points;
+            team2.ScoredPoints += team2Points;
+            team2.ConcededPoints += team1Points;
+
+            Console.WriteLine($"{team2.Team} forfeits the match against {team1.Team}. Final score: {team1Points} : {team2Points}");
+            return;
+        }
+
+        // Nastavak normanog toka simulacije ako se nijedan tim ne preda
+        bool team1Wins = random.NextDouble() < baseWinProbabilityTeam1;
 
         int basePoints = random.Next(70, 110);
 
-        int team1Points;
-        int team2Points;
+        int team1Score;
+        int team2Score;
 
         if (team1Wins)
         {
-            team1Points = basePoints + random.Next(1, 15);
-            team2Points = basePoints - random.Next(0, 5);
+            team1Score = basePoints + random.Next(1, 15);
+            team2Score = basePoints - random.Next(1, 5);
 
             team1.Points += 2;
             team1.Wins++;
             team2.Points += 1;
             team2.Losses++;
-            team1.TournamentWins++;
 
-            team1Points += rankDifference / 2;
+            team1Score += rankDifference / 2;
         }
         else
         {
-            team2Points = basePoints + random.Next(1, 15);
-            team1Points = basePoints - random.Next(1, 5);
+            team2Score = basePoints + random.Next(1, 15);
+            team1Score = basePoints - random.Next(1, 5);
 
             team2.Points += 2;
             team2.Wins++;
             team1.Points += 1;
             team1.Losses++;
-            team2.TournamentWins++;
 
-            team2Points += rankDifference / 2;
+            team2Score += rankDifference / 2;
         }
 
-        team1.ScoredPoints += team1Points;
-        team1.ConcededPoints += team2Points;
-        team2.ScoredPoints += team2Points;
-        team2.ConcededPoints += team1Points;
+        team1.ScoredPoints += team1Score;
+        team1.ConcededPoints += team2Score;
+        team2.ScoredPoints += team2Score;
+        team2.ConcededPoints += team1Score;
 
-        Console.WriteLine("-------------------------------------------------------");
-        Console.WriteLine($"winProbabilityTeam1 - {winProbabilityTeam1}");
-        Console.WriteLine($"winProbabilityTeam2 - {winProbabilityTeam2}");
-        Console.WriteLine($"formCoefficientTeam1 - {formCoefficientTeam1}");
-        Console.WriteLine($"formCoefficientTeam2 - {formCoefficientTeam2}");
-        Console.WriteLine($"{team1.Team} - {team2.Team} ({team1Points} : {team2Points})");
+        Console.WriteLine($"{team1.Team} - {team2.Team} ({team1Score} : {team2Score})");
     }
 
     static int CalculateFormCoefficient(string isoCode, Dictionary<string, List<MatchResult>> preseasonResults, int tournamentWins)
@@ -180,7 +216,7 @@ public class Program
             });
         }
 
-        return preseasonWins + tournamentWins; // Sum preseason wins and tournament wins
+        return preseasonWins + tournamentWins; // Zbir predsezonskih i pobeda na turniru zbog pracenja forme
     }
 
     static void PrintGroupResults(string groupName, List<BasketballTeam> teams)
@@ -443,11 +479,6 @@ public class Program
             team2.TournamentWins++;
         }
 
-        Console.WriteLine("-------------------------------------------------------");
-        Console.WriteLine($"winProbabilityTeam1 - {winProbabilityTeam1}");
-        Console.WriteLine($"formCoefficientTeam1 - {formCoefficientTeam1}");
-        Console.WriteLine($"formCoefficientTeam2 - {formCoefficientTeam2}");
-        Console.WriteLine("-------------------------------------------------------");
         Console.WriteLine($"{team1.Team} - {team2.Team} ({team1Points} : {team2Points})");
 
         return team1Wins ? team1 : team2;
